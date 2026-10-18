@@ -1,0 +1,62 @@
+# This module contains the OrderTracker class, which encapsulates the core
+# business logic for managing orders.
+
+class OrderTracker:
+    """
+    Manages customer orders, providing functionalities to add, update,
+    and retrieve order information.
+    """
+    def __init__(self, storage):
+        required_methods = ['save_order', 'get_order', 'get_all_orders']
+        for method in required_methods:
+            if not hasattr(storage, method) or not callable(getattr(storage, method)):
+                raise TypeError(f"Storage object must implement a callable '{method}' method.")
+        self.storage = storage
+
+    def add_order(self, order_id: str, item_name: str, quantity: int, customer_id: str, status: str = "pending"):
+        ordr_obj = {
+            "order_id": order_id,
+            "item_name": item_name,
+            "quantity": quantity,
+            "customer_id": customer_id,
+            "status": status
+        }
+
+        if self.storage.get_order(order_id):
+            raise ValueError(f"Order with ID '{order_id}' already exists.")
+
+        self.storage.save_order(order_id, ordr_obj)
+
+        return ordr_obj
+
+    def get_order_by_id(self, order_id: str):
+
+        storage_db = self.storage.get_order(order_id)
+
+        if not storage_db:
+            raise ValueError(f"Order with ID '{order_id}' does not exists.")
+
+        return storage_db
+
+    def update_order_status(self, order_id: str, new_status: str):
+        accepted_status = ["pending", "shipped", "processing"]
+
+        order = self.storage.get_order(order_id)
+
+        if not order:
+            raise ValueError(f"Order with ID '{order_id}' does not exists.")
+
+        if new_status not in accepted_status:
+            raise ValueError(f"Status '{new_status}' is invalid.")
+
+        order['status'] = new_status
+
+        self.storage.save_order(order_id, order)
+
+        return order
+
+    def list_all_orders(self):
+        return self.storage.get_all_orders()
+
+    def list_orders_by_status(self, status: str):
+        return [order for order in self.storage.get_all_orders().values() if order.get("status") == status]
